@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/beat-maker/static/css/main.4a0f9a44.css",
-    "main.js": "/beat-maker/static/js/main.f27a879b.js",
+    "main.js": "/beat-maker/static/js/main.adf76f14.js",
     "static/js/453.a06522b6.chunk.js": "/beat-maker/static/js/453.a06522b6.chunk.js",
     "static/media/beat-maker-logo.png": "/beat-maker/static/media/beat-maker-logo.d61bf5fa67773e2687b7.png",
     "index.html": "/beat-maker/index.html",
@@ -13,11 +13,11 @@
     "static/media/track.webp": "/beat-maker/static/media/track.723a30752e4730e77707.webp",
     "static/media/keys.webp": "/beat-maker/static/media/keys.11452646c6adee4f4e5d.webp",
     "main.4a0f9a44.css.map": "/beat-maker/static/css/main.4a0f9a44.css.map",
-    "main.f27a879b.js.map": "/beat-maker/static/js/main.f27a879b.js.map",
+    "main.adf76f14.js.map": "/beat-maker/static/js/main.adf76f14.js.map",
     "453.a06522b6.chunk.js.map": "/beat-maker/static/js/453.a06522b6.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.4a0f9a44.css",
-    "static/js/main.f27a879b.js"
+    "static/js/main.adf76f14.js"
   ]
 }
