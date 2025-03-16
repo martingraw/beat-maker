@@ -1,23 +1,23 @@
 {
   "files": {
-    "main.css": "/beat-maker/static/css/main.4a0f9a44.css",
-    "main.js": "/beat-maker/static/js/main.c8ae0a08.js",
-    "static/js/453.a06522b6.chunk.js": "/beat-maker/static/js/453.a06522b6.chunk.js",
-    "static/media/beat-maker-logo.png": "/beat-maker/static/media/beat-maker-logo.d61bf5fa67773e2687b7.png",
-    "index.html": "/beat-maker/index.html",
-    "static/media/fx.webp": "/beat-maker/static/media/fx.06dc4f7c40b139161e52.webp",
-    "static/media/percussion.webp": "/beat-maker/static/media/percussion.be9f1c0c6c3db18ab0eb.webp",
-    "static/media/kick.webp": "/beat-maker/static/media/kick.61eeaae8a0f3d7723e28.webp",
-    "static/media/snare.webp": "/beat-maker/static/media/snare.78e100bbce92e7b783ef.webp",
-    "static/media/closed-hat.webp": "/beat-maker/static/media/closed-hat.b44fa6849863004467b1.webp",
-    "static/media/track.webp": "/beat-maker/static/media/track.723a30752e4730e77707.webp",
-    "static/media/keys.webp": "/beat-maker/static/media/keys.11452646c6adee4f4e5d.webp",
-    "main.4a0f9a44.css.map": "/beat-maker/static/css/main.4a0f9a44.css.map",
-    "main.c8ae0a08.js.map": "/beat-maker/static/js/main.c8ae0a08.js.map",
-    "453.a06522b6.chunk.js.map": "/beat-maker/static/js/453.a06522b6.chunk.js.map"
+    "main.css": "/static/css/main.4a0f9a44.css",
+    "main.js": "/static/js/main.40235e96.js",
+    "static/js/453.a06522b6.chunk.js": "/static/js/453.a06522b6.chunk.js",
+    "static/media/beat-maker-logo.png": "/static/media/beat-maker-logo.d61bf5fa67773e2687b7.png",
+    "static/media/fx.webp": "/static/media/fx.06dc4f7c40b139161e52.webp",
+    "index.html": "/index.html",
+    "static/media/percussion.webp": "/static/media/percussion.be9f1c0c6c3db18ab0eb.webp",
+    "static/media/kick.webp": "/static/media/kick.61eeaae8a0f3d7723e28.webp",
+    "static/media/snare.webp": "/static/media/snare.78e100bbce92e7b783ef.webp",
+    "static/media/closed-hat.webp": "/static/media/closed-hat.b44fa6849863004467b1.webp",
+    "static/media/track.webp": "/static/media/track.723a30752e4730e77707.webp",
+    "static/media/keys.webp": "/static/media/keys.11452646c6adee4f4e5d.webp",
+    "main.4a0f9a44.css.map": "/static/css/main.4a0f9a44.css.map",
+    "main.40235e96.js.map": "/static/js/main.40235e96.js.map",
+    "453.a06522b6.chunk.js.map": "/static/js/453.a06522b6.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.4a0f9a44.css",
-    "static/js/main.c8ae0a08.js"
+    "static/js/main.40235e96.js"
   ]
 }
