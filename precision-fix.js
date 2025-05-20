@@ -1,316 +1,296 @@
 (function() {
   'use strict';
   
-  console.log('[Beat Maker Fix] Initializing precision fix...');
+  console.log('[Beat Maker Fix] Initializing ultimate fix...');
   
-  // 1. Fix for MP3 export (encodeBuffer issue)
-  // Define required global objects immediately
-  if (typeof window.MPEGMode === 'undefined') {
-    window.MPEGMode = {
-      STEREO: 0,
-      JOINT_STEREO: 1,
-      DUAL_CHANNEL: 2,
-      MONO: 3
-    };
-    console.log('[Beat Maker Fix] Defined MPEGMode object');
-  }
+  // 1. Define MPEGMode globally right away
+  window.MPEGMode = {
+    STEREO: 0,
+    JOINT_STEREO: 1,
+    DUAL_CHANNEL: 2,
+    MONO: 3
+  };
   
-  // 2. Fix for MIDI export (addTrackName issue)
-  // We need to ensure that the File object returned by nn().File has the addTrackName method
-  function patchFileConstructors() {
-    // Look for functions that might be nn()
+  // 2. Define alternative names that might be used
+  window.MPEG_MODE = window.MPEGMode;
+  window.Mp3MPEGMode = window.MPEGMode;
+  window.LameMode = window.MPEGMode;
+  
+  // 3. Monitor error messages to apply targeted fixes
+  const originalConsoleError = console.error;
+  console.error = function(...args) {
+    // Check if this is our specific error
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('MPEGMode is not defined')) {
+      console.log('[Beat Maker Fix] Caught MPEGMode error, applying targeted fix');
+      
+      // Look at the error location (exportUtils.ts:85:22)
+      window.MPEGMode = {
+        STEREO: 0,
+        JOINT_STEREO: 1,
+        DUAL_CHANNEL: 2,
+        MONO: 3
+      };
+      
+      // More aggressive approach - inject into all possible scopes
+      injectMPEGModeEverywhere();
+    }
+    
+    // Check for MIDI error
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('addTrackName is not a function')) {
+      console.log('[Beat Maker Fix] Caught addTrackName error, applying MIDI fix');
+      
+      // Apply our MIDI fix
+      fixMIDIExport();
+    }
+    
+    // Always call the original
+    return originalConsoleError.apply(this, args);
+  };
+  
+  // 4. Extremely aggressive approach - define MPEGMode in all possible scopes
+  function injectMPEGModeEverywhere() {
+    // Define it on every object we can find
     for (const key in window) {
-      if (typeof window[key] === 'function') {
-        try {
-          const result = window[key]();
+      try {
+        if (typeof window[key] === 'object' && window[key] !== null) {
+          if (!window[key].MPEGMode) {
+            window[key].MPEGMode = window.MPEGMode;
+          }
+        }
+      } catch (e) {
+        // Ignore errors accessing some properties
+      }
+    }
+    
+    // Try to find the problematic module
+    try {
+      const scripts = document.querySelectorAll('script');
+      for (const script of scripts) {
+        if (script.src && script.src.includes('main.')) {
+          console.log('[Beat Maker Fix] Found main script:', script.src);
           
-          // If this function returns an object with a File property, it might be nn()
-          if (result && typeof result === 'object' && typeof result.File === 'function') {
-            console.log('[Beat Maker Fix] Found potential nn() function:', key);
-            
-            // Now patch the File.prototype to ensure it has addTrackName
-            const FileProto = result.File.prototype;
-            
-            if (!FileProto.addTrackName) {
-              console.log('[Beat Maker Fix] Adding addTrackName to File.prototype');
-              
-              // Add the method with 3 parameters as seen in the code
-              FileProto.addTrackName = function(delta, time, name) {
-                console.log('[Beat Maker Fix] Custom addTrackName called with:', delta, time, name);
+          // Fetch the script content to examine it
+          fetch(script.src)
+            .then(response => response.text())
+            .then(content => {
+              // Look for MPEGMode usage
+              const mpegModeIndex = content.indexOf('MPEGMode');
+              if (mpegModeIndex !== -1) {
+                const contextBefore = content.substring(Math.max(0, mpegModeIndex - 100), mpegModeIndex);
+                const contextAfter = content.substring(mpegModeIndex, mpegModeIndex + 100);
                 
-                // Store the name on the object
-                this.name = name;
+                console.log('[Beat Maker Fix] Found MPEGMode usage:');
+                console.log('Before:', contextBefore);
+                console.log('After:', contextAfter);
                 
-                // If there's an addTrack method, we might be using a different MIDI library
-                if (typeof this.addTrack === 'function') {
-                  const track = this.addTrack();
-                  if (track && typeof track.addEvent === 'function') {
-                    // Some MIDI libraries use META_TRACK_NAME event (type 0x03)
-                    track.addEvent({
-                      type: 0x03, // META_TRACK_NAME
-                      data: name
-                    }, delta);
+                // Try to identify the module or function
+                const moduleMatch = contextBefore.match(/[a-zA-Z0-9_$]+\s*=\s*function/);
+                if (moduleMatch) {
+                  const moduleName = moduleMatch[0].split('=')[0].trim();
+                  console.log('[Beat Maker Fix] Potential module:', moduleName);
+                  
+                  // Try to inject into this module
+                  if (window[moduleName]) {
+                    window[moduleName].MPEGMode = window.MPEGMode;
+                    console.log('[Beat Maker Fix] Injected MPEGMode into module:', moduleName);
                   }
                 }
-                
-                return this;
-              };
-            }
-          }
-        } catch (e) {
-          // Ignore errors when testing functions
-        }
-      }
-    }
-  }
-  
-  // Patch the encodeBuffer function to handle undefined buffers
-  function patchEncodeBuffer() {
-    // Monitor for access to encodeBuffer method
-    Object.defineProperty(Object.prototype, 'encodeBuffer', {
-      // Store original method
-      get: function() {
-        const original = this._originalEncodeBuffer;
-        
-        if (typeof original === 'function') {
-          // Return a safe wrapper around the original function
-          return function(buffer) {
-            try {
-              // Check if buffer is valid
-              if (!buffer || typeof buffer.length === 'undefined') {
-                console.warn('[Beat Maker Fix] Fixing undefined buffer in encodeBuffer');
-                return new Int8Array(0);
               }
-              
-              // Call original with proper arguments
-              return original.apply(this, arguments);
-            } catch (e) {
-              console.error('[Beat Maker Fix] Error in encodeBuffer:', e);
-              // Return empty result to prevent further errors
-              return new Int8Array(0);
-            }
-          };
-        }
-        
-        return original;
-      },
-      set: function(newValue) {
-        // Store the original function
-        this._originalEncodeBuffer = newValue;
-      },
-      configurable: true
-    });
-    
-    // Look for objects that might already have encodeBuffer
-    for (const key in window) {
-      if (typeof window[key] === 'object' && window[key] !== null) {
-        const obj = window[key];
-        
-        if (typeof obj.encodeBuffer === 'function') {
-          console.log('[Beat Maker Fix] Found encodeBuffer in', key);
-          
-          // Save the original function
-          obj._originalEncodeBuffer = obj.encodeBuffer;
-          
-          // The getter will now return our safe version
+            })
+            .catch(error => {
+              console.error('[Beat Maker Fix] Error fetching script:', error);
+            });
         }
       }
+    } catch (e) {
+      console.error('[Beat Maker Fix] Error analyzing scripts:', e);
     }
   }
   
-  // Direct patch based on nn() and File
-  function directPatchNN() {
-    // Try to find the nn function
-    let foundNN = false;
-    
-    // Look for all functions that might be nn
-    for (const key in window) {
-      if (typeof window[key] === 'function' && key.length <= 3) {
-        try {
-          // Attempt to call it and see if it returns something with File
-          const result = window[key]();
-          
-          if (result && typeof result.File === 'function') {
-            // This looks like nn!
-            console.log('[Beat Maker Fix] Found nn() function as', key);
-            
-            // Save the original function
-            const originalNN = window[key];
-            
-            // Replace with our enhanced version
-            window[key] = function() {
-              const result = originalNN.apply(this, arguments);
-              
-              // Patch the File constructor
-              const originalFile = result.File;
-              result.File = function() {
-                const fileInstance = new originalFile(...arguments);
-                
-                // Add addTrackName if it doesn't exist
-                if (!fileInstance.addTrackName) {
-                  fileInstance.addTrackName = function(delta, time, name) {
-                    console.log('[Beat Maker Fix] Dynamically added addTrackName called');
-                    this.name = name;
-                    return this;
-                  };
-                }
-                
-                return fileInstance;
-              };
-              result.File.prototype = originalFile.prototype;
-              
-              // Ensure addTrackName exists on the prototype
-              if (!result.File.prototype.addTrackName) {
-                result.File.prototype.addTrackName = function(delta, time, name) {
-                  console.log('[Beat Maker Fix] Prototype addTrackName called');
-                  this.name = name;
-                  return this;
-                };
-              }
-              
-              return result;
-            };
-            
-            foundNN = true;
-            break;
-          }
-        } catch (e) {
-          // Ignore errors, just try the next function
-        }
-      }
+  // 5. Fix for MIDI export
+  function fixMIDIExport() {
+    // Add addTrackName to Object prototype temporarily
+    if (!Object.prototype.addTrackName) {
+      Object.prototype.addTrackName = function(delta, time, name) {
+        console.log('[Beat Maker Fix] Emergency addTrackName called with:', delta, time, name);
+        this.name = name;
+        return this;
+      };
+      
+      // Remove after 10 seconds to avoid polluting the prototype
+      setTimeout(() => {
+        delete Object.prototype.addTrackName;
+      }, 10000);
     }
     
-    if (!foundNN) {
-      console.log('[Beat Maker Fix] Could not find nn() function, trying generic patches');
-    }
-  }
-  
-  // Patch by directly targeting the cn function
-  function patchCNFunction() {
-    // Look for a function that might be cn (the MIDI export function)
+    // Try to find and patch the cn function more directly
     for (const key in window) {
       if (typeof window[key] === 'function') {
         const funcStr = window[key].toString();
         
-        // If the function contains our key pattern
+        // Look for the specific function pattern
         if (funcStr.includes('addTrackName') && funcStr.includes('Beat Maker Pattern')) {
-          console.log('[Beat Maker Fix] Found cn function as', key);
+          console.log('[Beat Maker Fix] Found MIDI export function:', key);
           
-          // Save the original function
-          const originalCN = window[key];
+          // Store the original function
+          const originalFn = window[key];
           
-          // Replace with our fixed version
-          window[key] = function(e, t, n, a) {
+          // Replace with our patched version
+          window[key] = function() {
             try {
-              // Ensure the a object has addTrackName before cn tries to use it
-              if (a && !a.addTrackName) {
-                a.addTrackName = function(delta, time, name) {
-                  console.log('[Beat Maker Fix] Added addTrackName to object in cn');
-                  this.name = name;
-                  return this;
-                };
+              // Before calling the original, ensure all objects have addTrackName
+              for (let i = 0; i < arguments.length; i++) {
+                if (arguments[i] && typeof arguments[i] === 'object' && !arguments[i].addTrackName) {
+                  arguments[i].addTrackName = function(delta, time, name) {
+                    this.name = name;
+                    return this;
+                  };
+                }
               }
               
-              // Call the original function with our fixed objects
-              return originalCN.apply(this, arguments);
-            } catch (error) {
-              console.error('[Beat Maker Fix] Error in patched cn:', error);
-              
-              // Try to return something that won't break the app
+              return originalFn.apply(this, arguments);
+            } catch (e) {
+              console.error('[Beat Maker Fix] Error in patched MIDI function:', e);
               return null;
             }
           };
           
+          console.log('[Beat Maker Fix] Successfully patched MIDI export function');
           break;
         }
       }
     }
   }
   
-  // Set up a specific hook for the exact MIDI File and addTrackName call
-  function setupSpecificHooks() {
-    // Based on the code fragment we have, we can intercept the exact objects
-    
-    // Override the constructor
-    window.MIDIFileConstructorHook = function(File) {
-      if (File && File.prototype && !File.prototype.addTrackName) {
-        File.prototype.addTrackName = function(delta, time, name) {
-          console.log('[Beat Maker Fix] MIDI File addTrackName:', delta, time, name);
-          this.name = name;
-          return this;
-        };
-      }
-      return File;
-    };
-    
-    // Monitor errors to add just-in-time fixes
-    const originalError = console.error;
-    console.error = function(...args) {
-      // Check for our specific errors
-      if (args[0] && args[0].toString) {
-        const errorStr = args[0].toString();
-        
-        // addTrackName error
-        if (errorStr.includes('addTrackName is not a function')) {
-          console.log('[Beat Maker Fix] Detected addTrackName error, applying emergency fix');
-          
-          // Look at the call stack to find the object
-          if (args[0].stack) {
-            const stack = args[0].stack;
-            
-            // Extract the function name from the stack
-            const match = stack.match(/at\s+([a-zA-Z0-9_$]+)\s+\(/);
-            if (match && match[1]) {
-              const funcName = match[1];
-              console.log('[Beat Maker Fix] Error occurred in function:', funcName);
-              
-              // Apply targeted fix
-              patchFileConstructors();
-              directPatchNN();
-              patchCNFunction();
+  // 6. Monitor specific DOM elements for export actions
+  function monitorExportButtons() {
+    // MutationObserver to watch for new elements
+    const observer = new MutationObserver(mutations => {
+      mutations.forEach(mutation => {
+        if (mutation.addedNodes) {
+          mutation.addedNodes.forEach(node => {
+            // Check if this is an element
+            if (node.nodeType === 1) {
+              // Look for export buttons
+              const buttons = node.querySelectorAll('button');
+              buttons.forEach(button => {
+                if (button.textContent && 
+                    (button.textContent.toLowerCase().includes('export') || 
+                     button.textContent.toLowerCase().includes('mp3') ||
+                     button.textContent.toLowerCase().includes('midi'))) {
+                  
+                  console.log('[Beat Maker Fix] Found potential export button:', button.textContent);
+                  
+                  // Add a click handler to ensure our fixes are applied
+                  button.addEventListener('click', () => {
+                    console.log('[Beat Maker Fix] Export button clicked, ensuring fixes are applied');
+                    
+                    // Redefine MPEGMode
+                    window.MPEGMode = {
+                      STEREO: 0,
+                      JOINT_STEREO: 1,
+                      DUAL_CHANNEL: 2,
+                      MONO: 3
+                    };
+                    
+                    // Apply MIDI fix
+                    fixMIDIExport();
+                    
+                    // More aggressive approach
+                    injectMPEGModeEverywhere();
+                  }, true); // Use capture to run before the app's handler
+                }
+              });
             }
-          }
+          });
+        }
+      });
+    });
+    
+    // Start observing
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    
+    // Also look for existing buttons
+    const existingButtons = document.querySelectorAll('button');
+    existingButtons.forEach(button => {
+      if (button.textContent && 
+          (button.textContent.toLowerCase().includes('export') || 
+           button.textContent.toLowerCase().includes('mp3') ||
+           button.textContent.toLowerCase().includes('midi'))) {
+        
+        console.log('[Beat Maker Fix] Found existing export button:', button.textContent);
+        
+        // Add a click handler
+        button.addEventListener('click', () => {
+          console.log('[Beat Maker Fix] Export button clicked, ensuring fixes are applied');
           
-          // As a last resort, add to Object prototype temporarily
-          Object.prototype.addTrackName = function(delta, time, name) {
-            console.log('[Beat Maker Fix] Emergency addTrackName called');
-            this.name = name;
-            return this;
+          // Redefine MPEGMode
+          window.MPEGMode = {
+            STEREO: 0,
+            JOINT_STEREO: 1,
+            DUAL_CHANNEL: 2,
+            MONO: 3
           };
           
-          // Remove after a short delay
-          setTimeout(() => {
-            delete Object.prototype.addTrackName;
-          }, 5000);
-        }
-        
-        // encodeBuffer error
-        if (errorStr.includes('Cannot read properties of undefined (reading \'length\')')) {
-          console.log('[Beat Maker Fix] Detected encodeBuffer error, applying emergency fix');
+          // Apply MIDI fix
+          fixMIDIExport();
           
-          // Apply more aggressive fix
-          patchEncodeBuffer();
-        }
+          // More aggressive approach
+          injectMPEGModeEverywhere();
+        }, true); // Use capture to run before the app's handler
       }
-      
-      // Call the original error function
-      return originalError.apply(this, args);
-    };
+    });
   }
   
-  // Apply all our patches
-  patchFileConstructors();
-  patchEncodeBuffer();
-  directPatchNN();
-  patchCNFunction();
-  setupSpecificHooks();
+  // Run our fixes
+  injectMPEGModeEverywhere();
+  fixMIDIExport();
   
-  // Run patches again after a delay to catch dynamically loaded resources
+  // Set up monitoring
+  monitorExportButtons();
+  
+  // Apply fixes again after a delay
   setTimeout(() => {
-    patchFileConstructors();
-    directPatchNN();
-    patchCNFunction();
+    console.log('[Beat Maker Fix] Reapplying fixes after delay');
+    injectMPEGModeEverywhere();
+    fixMIDIExport();
+    monitorExportButtons();
   }, 3000);
   
-  console.log('[Beat Maker Fix] All patches applied');
+  // Load additional script for direct Lame support
+  function loadLameScript() {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+    script.onload = function() {
+      console.log('[Beat Maker Fix] Loaded lamejs library');
+      
+      // Make sure MPEGMode is defined globally
+      if (typeof window.MPEGMode === 'undefined') {
+        window.MPEGMode = {
+          STEREO: 0,
+          JOINT_STEREO: 1,
+          DUAL_CHANNEL: 2,
+          MONO: 3
+        };
+      }
+      
+      // If the library provides its own MPEGMode, use that
+      if (window.lamejs && window.lamejs.MPEGMode) {
+        window.MPEGMode = window.lamejs.MPEGMode;
+        console.log('[Beat Maker Fix] Using lamejs MPEGMode');
+      }
+    };
+    script.onerror = function() {
+      console.error('[Beat Maker Fix] Failed to load lamejs library');
+    };
+    document.head.appendChild(script);
+  }
+  
+  // Load Lame script as a backup
+  loadLameScript();
+  
+  console.log('[Beat Maker Fix] Ultimate fix initialization complete');
 })();
