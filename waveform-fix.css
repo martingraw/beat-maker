@@ -1,0 +1,4 @@
+/* Fix for waveform.png path */
+.waveform-placeholder {
+  background-image: url('./waveform.png') !important;
+}
